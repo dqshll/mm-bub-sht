@@ -1,412 +1,220 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>勾股定理 - 卡通交互动画演示</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=ZCOOL+KuaiLe&display=swap');
-        
-        body {
-            font-family: 'Nunito', 'ZCOOL KuaiLe', sans-serif;
-            background-color: #f0f4f8;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<title>Memes</title>
+		<style>
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
 
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-            border-radius: 24px;
-            border: 4px solid #fff;
-        }
+body {
+	color: white;
+	background-color: black;
+	overflow: hidden;
+	touch-action: none;
+}
 
-        .btn-play {
-            background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%);
-            box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
-            transition: all 0.3s ease;
-        }
-        
-        .btn-play:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 20px rgba(255, 154, 158, 0.6);
-        }
+#canvas {
+	display: block;
+}
 
-        .btn-reset {
-            background: white;
-            border: 2px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
+#canvas:focus {
+	outline: none;
+}
 
-        .btn-reset:hover {
-            background: #f8fafc;
-            border-color: #cbd5e1;
-            transform: translateY(-2px);
-        }
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+}
 
-        .pop-animation {
-            animation: popScale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
+}
 
-        @keyframes popScale {
-            0% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
+#status {
+	background-color: #242424;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	visibility: hidden;
+}
 
-        .svg-container {
-            width: 100%;
-            max-width: 800px;
-            aspect-ratio: 4/3;
-        }
+#status-splash {
+	max-height: 100%;
+	max-width: 100%;
+	margin: auto;
+}
 
-        /* SVG elements transitions */
-        .fade-transition {
-            transition: opacity 0.6s ease-in-out;
-        }
-    </style>
-</head>
-<body class="p-4 sm:p-8">
+#status-splash.show-image--false {
+	display: none;
+}
 
-    <div class="glass-panel w-full max-w-4xl overflow-hidden flex flex-col items-center p-6 sm:p-10 relative">
-        
-        <!-- 标题区 -->
-        <div class="text-center mb-6">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-3 tracking-wide" style="font-family: 'ZCOOL KuaiLe', sans-serif;">
-                🌟 勾股定理 视觉证明 🌟
-            </h1>
-            <p class="text-gray-500 text-lg">“直角三角形的两条直角边的平方和，等于斜边的平方”</p>
-        </div>
+#status-splash.fullsize--true {
+	height: 100%;
+	width: 100%;
+	object-fit: contain;
+}
 
-        <!-- 动态公式展示 -->
-        <div class="h-16 flex items-center justify-center mb-4">
-            <div id="formulaBox" class="text-3xl sm:text-4xl font-bold text-indigo-600 bg-indigo-50 border-2 border-indigo-200 px-6 py-2 rounded-2xl">
-                a² + b² = c²
-            </div>
-        </div>
+#status-splash.use-filter--false {
+	image-rendering: pixelated;
+}
 
-        <!-- 步骤说明文字 -->
-        <div class="h-12 flex items-center justify-center w-full mb-6 text-center">
-            <p id="descText" class="text-lg sm:text-xl text-gray-700 font-medium">点击下面“▶ 播放动画”开始见证奇迹！</p>
-        </div>
+#status-progress, #status-notice {
+	display: none;
+}
 
-        <!-- SVG 动画区 -->
-        <div class="svg-container bg-white rounded-3xl border-2 border-gray-100 shadow-inner relative overflow-hidden mb-8">
-            <svg viewBox="0 0 800 600" id="mainSvg" class="w-full h-full block">
-                <defs>
-                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.1"/>
-                    </filter>
-                </defs>
-                
-                <!-- 整体居中偏移 -->
-                <g transform="translate(40, -20)">
-                    
-                    <!-- 1. 背景虚线正方形框 -->
-                    <!-- a^2 框 -->
-                    <polygon id="sq-a-bg" class="fade-transition" opacity="0" points="300,400 420,400 420,520 300,520" fill="#fef2f2" stroke="#fca5a5" stroke-width="3" stroke-dasharray="8 4" stroke-linejoin="round"/>
-                    <!-- b^2 框 -->
-                    <polygon id="sq-b-bg" class="fade-transition" opacity="0" points="140,240 300,240 300,400 140,400" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="3" stroke-dasharray="8 4" stroke-linejoin="round"/>
-                    <!-- c^2 框 -->
-                    <polygon id="sq-c-bg" class="fade-transition" opacity="0" points="300,240 420,400 580,280 460,120" fill="#eff6ff" stroke="#93c5fd" stroke-width="3" stroke-dasharray="8 4" stroke-linejoin="round"/>
+#status-progress {
+	bottom: 10%;
+	width: 50%;
+	margin: 0 auto;
+}
 
-                    <!-- c^2 目标区域的内部网格线 (动态生成) -->
-                    <g id="grid-c" class="fade-transition" opacity="0"></g>
+#status-notice {
+	background-color: #5b3943;
+	border-radius: 0.5rem;
+	border: 1px solid #9b3943;
+	color: #e0e0e0;
+	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
+	line-height: 1.3;
+	margin: 0 2rem;
+	overflow: hidden;
+	padding: 1rem;
+	text-align: center;
+	z-index: 1;
+}
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
-                    <!-- 2. 直角三角形底图 -->
-                    <polygon points="300,240 420,400 300,400" fill="#fef08a" stroke="#eab308" stroke-width="4" stroke-linejoin="round" filter="url(#shadow)"/>
-                    
-                    <!-- 直角符号 -->
-                    <polyline points="300,375 325,375 325,400" fill="none" stroke="#eab308" stroke-width="3" stroke-linejoin="round"/>
+	</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
 
-                    <!-- 三角形边长标签 -->
-                    <text x="360" y="425" class="text-2xl font-bold" fill="#d97706" text-anchor="middle">a = 3</text>
-                    <text x="260" y="325" class="text-2xl font-bold" fill="#d97706" text-anchor="middle">b = 4</text>
-                    <text x="365" y="300" class="text-2xl font-bold" fill="#d97706" text-anchor="middle" transform="rotate(-36.87, 360, 310)">c = 5</text>
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
 
-                    <!-- 3. 动态移动的小方块容器 (放在上面以便覆盖其他元素) -->
-                    <g id="blocks-container"></g>
+		<div id="status">
+			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
+			<progress id="status-progress"></progress>
+			<div id="status-notice"></div>
+		</div>
 
-                </g>
-            </svg>
-        </div>
+		<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":3135588,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
 
-        <!-- 控件按钮 -->
-        <div class="flex gap-4">
-            <button id="playBtn" onclick="playFullAnimation()" class="btn-play text-gray-800 font-bold text-lg px-8 py-3 rounded-full flex items-center gap-2">
-                <svg class="w-6 h-6 text-gray-800" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
-                播放演示
-            </button>
-            <button id="resetBtn" onclick="resetState()" class="btn-reset text-gray-600 font-bold text-lg px-8 py-3 rounded-full flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                重新开始
-            </button>
-        </div>
-    </div>
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
 
-    <script>
-        // --- 核心坐标与参数 ---
-        const A = {x: 300, y: 240}; // 三角形顶点A (上)
-        const B = {x: 420, y: 400}; // 三角形顶点B (右)
-        const C = {x: 300, y: 400}; // 三角形顶点C (直角)
-        const unitSize = 40; // 每个小方块的边长
+	let initializing = true;
+	let statusMode = '';
 
-        // C正方形的角度计算 (基于AB向量)
-        // dx = 120, dy = 160 => y在SVG中向下为正
-        // 我们以A为原点，建立局部坐标系，u轴垂直AB向外，v轴平行AB向右下
-        const angleRad = Math.atan2(-0.6, 0.8); // 旋转角度弧度
-        const angleDeg = angleRad * 180 / Math.PI; // -36.86989度
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
 
-        const blocks = [];
-        let isPlaying = false;
-        let timeoutIds = [];
-        let animationFrameId = null;
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
 
-        // --- DOM 元素 ---
-        const container = document.getElementById('blocks-container');
-        const gridC = document.getElementById('grid-c');
-        const formulaBox = document.getElementById('formulaBox');
-        const descText = document.getElementById('descText');
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occurred.');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
 
-        // --- 初始化小方块和网格 ---
-        function initBlocksAndGrid() {
-            // 1. 生成 Green Blocks (b^2 = 16个)
-            // 初始在左侧正方形
-            for(let i=0; i<4; i++) {
-                for(let j=0; j<4; j++) {
-                    blocks.push({
-                        type: 'green',
-                        sx: 140 + i*unitSize + unitSize/2,
-                        sy: 240 + j*unitSize + unitSize/2,
-                        sa: 0,
-                        tu: i, // 目标网格位置 u
-                        tv: j  // 目标网格位置 v
-                    });
-                }
-            }
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
 
-            // 2. 生成 Red Blocks (a^2 = 9个)
-            // 初始在下方正方形，目标是填满 5x5 中剩下的一层 L 形
-            const redTargets = [
-                {u:4, v:0}, {u:4, v:1}, {u:4, v:2}, {u:4, v:3}, {u:4, v:4},
-                {u:0, v:4}, {u:1, v:4}, {u:2, v:4}, {u:3, v:4}
-            ];
-            let tIdx = 0;
-            for(let i=0; i<3; i++) {
-                for(let j=0; j<3; j++) {
-                    blocks.push({
-                        type: 'red',
-                        sx: 300 + i*unitSize + unitSize/2,
-                        sy: 400 + j*unitSize + unitSize/2,
-                        sa: 0,
-                        tu: redTargets[tIdx].u,
-                        tv: redTargets[tIdx].v
-                    });
-                    tIdx++;
-                }
-            }
-
-            // 计算所有方块的目标绝对坐标
-            // u向量(外向): (0.8, -0.6) * 40 = (32, -24)
-            // v向量(沿AB): (0.6, 0.8) * 40 = (24, 32)
-            blocks.forEach(b => {
-                b.ex = A.x + (b.tu + 0.5) * 32 + (b.tv + 0.5) * 24;
-                b.ey = A.y + (b.tu + 0.5) * (-24) + (b.tv + 0.5) * 32;
-                b.ea = angleDeg;
-                
-                // 创建 SVG 节点
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                // 让 rect 中心在原点，方便旋转
-                rect.setAttribute('x', -unitSize/2);
-                rect.setAttribute('y', -unitSize/2);
-                rect.setAttribute('width', unitSize);
-                rect.setAttribute('height', unitSize);
-                rect.setAttribute('rx', '6'); // 卡通圆角
-                
-                if (b.type === 'green') {
-                    rect.setAttribute('fill', '#34d399'); // 柔和绿
-                    rect.setAttribute('stroke', '#059669');
-                } else {
-                    rect.setAttribute('fill', '#fb7185'); // 柔和红
-                    rect.setAttribute('stroke', '#e11d48');
-                }
-                
-                rect.setAttribute('stroke-width', '2');
-                rect.setAttribute('opacity', '0');
-                rect.setAttribute('transform', `translate(${b.sx}, ${b.sy}) rotate(${b.sa})`);
-                container.appendChild(rect);
-                b.el = rect;
-            });
-
-            // 3. 画 C 正方形里面的参考虚线网格
-            for (let i = 1; i < 5; i++) {
-                // 平行于 X_c 的线 (沿 v 方向平移)
-                const sx1 = A.x + i * 40 * 0.6;
-                const sy1 = A.y + i * 40 * 0.8;
-                const ex1 = sx1 + 5 * 40 * 0.8;
-                const ey1 = sy1 + 5 * 40 * (-0.6);
-                createLine(sx1, sy1, ex1, ey1);
-
-                // 平行于 Y_c 的线 (沿 u 方向平移)
-                const sx2 = A.x + i * 40 * 0.8;
-                const sy2 = A.y + i * 40 * (-0.6);
-                const ex2 = sx2 + 5 * 40 * 0.6;
-                const ey2 = sy2 + 5 * 40 * 0.8;
-                createLine(sx2, sy2, ex2, ey2);
-            }
-        }
-
-        function createLine(x1, y1, x2, y2) {
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-            line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-            line.setAttribute('stroke', '#bfdbfe');
-            line.setAttribute('stroke-dasharray', '4 4');
-            line.setAttribute('stroke-width', '2');
-            gridC.appendChild(line);
-        }
-
-        // 动画缓动函数
-        function easeInOutCubic(t) {
-            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        }
-
-        // --- UI 更新工具 ---
-        function updateText(text) {
-            descText.style.opacity = 0;
-            setTimeout(() => {
-                descText.innerText = text;
-                descText.style.opacity = 1;
-            }, 300); // match transition time
-        }
-
-        function updateFormula(text) {
-            formulaBox.classList.remove('pop-animation');
-            void formulaBox.offsetWidth; // 触发重绘
-            formulaBox.innerText = text;
-            formulaBox.classList.add('pop-animation');
-        }
-
-        function setOpacity(id, value) {
-            document.getElementById(id).style.opacity = value;
-        }
-
-        // --- 核心动画逻辑 ---
-        function playFullAnimation() {
-            if (isPlaying) return;
-            isPlaying = true;
-            
-            // 确保是干净的状态
-            resetState(true); 
-
-            document.getElementById('playBtn').disabled = true;
-            document.getElementById('playBtn').style.opacity = 0.5;
-
-            updateText("仔细观察这个直角三角形 (边长为 3, 4, 5)");
-            updateFormula("a² + b² = c²");
-
-            // 阶段 1: 展开框线
-            timeoutIds.push(setTimeout(() => {
-                setOpacity('sq-a-bg', 1);
-                setOpacity('sq-b-bg', 1);
-                setOpacity('sq-c-bg', 1);
-                setOpacity('grid-c', 1);
-                updateText("1. 分别以它的三条边为边长，向外构建三个正方形。");
-            }, 1000));
-
-            // 阶段 2: 显现小方块
-            timeoutIds.push(setTimeout(() => {
-                blocks.forEach((b, index) => {
-                    // 添加一点交错的显现效果
-                    setTimeout(() => {
-                        b.el.style.transition = 'opacity 0.4s ease-in';
-                        b.el.setAttribute('opacity', '1');
-                    }, index * 20);
-                });
-                updateText("2. 边长 3 的正方形面积是 9，边长 4 的正方形面积是 16。");
-                updateFormula("3² + 4² = 5²");
-            }, 3500));
-
-            // 阶段 3: 移动小方块
-            timeoutIds.push(setTimeout(() => {
-                updateText("3. 见证奇迹时刻！将面积 9 和 16 的小方块搬运过去...");
-                
-                let startT = null;
-                const duration = 2500; // 动画持续 2.5 秒
-                
-                function step(t) {
-                    if (!startT) startT = t;
-                    let progress = (t - startT) / duration;
-                    if (progress > 1) progress = 1;
-                    
-                    const p = easeInOutCubic(progress);
-                    
-                    blocks.forEach(b => {
-                        const cx = b.sx + (b.ex - b.sx) * p;
-                        const cy = b.sy + (b.ey - b.sy) * p;
-                        const ca = b.sa + (b.ea - b.sa) * p;
-                        b.el.setAttribute('transform', `translate(${cx}, ${cy}) rotate(${ca})`);
-                    });
-                    
-                    if (progress < 1) {
-                        animationFrameId = requestAnimationFrame(step);
-                    }
-                }
-                animationFrameId = requestAnimationFrame(step);
-                
-            }, 6500));
-
-            // 阶段 4: 结束语
-            timeoutIds.push(setTimeout(() => {
-                updateText("4. 它们完美地填满了斜边正方形！面积恰好等于 25。");
-                updateFormula("9 + 16 = 25");
-                isPlaying = false;
-                document.getElementById('playBtn').disabled = false;
-                document.getElementById('playBtn').style.opacity = 1;
-            }, 9500));
-        }
-
-        // --- 重置状态 ---
-        function resetState(silent = false) {
-            // 清除所有定时器和动画帧
-            timeoutIds.forEach(clearTimeout);
-            timeoutIds = [];
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            isPlaying = false;
-
-            document.getElementById('playBtn').disabled = false;
-            document.getElementById('playBtn').style.opacity = 1;
-
-            // 重置 SVG 元素显示状态
-            setOpacity('sq-a-bg', 0);
-            setOpacity('sq-b-bg', 0);
-            setOpacity('sq-c-bg', 0);
-            setOpacity('grid-c', 0);
-
-            // 重置方块位置
-            blocks.forEach(b => {
-                b.el.style.transition = 'none'; // 瞬间恢复无动画
-                b.el.setAttribute('opacity', '0');
-                b.el.setAttribute('transform', `translate(${b.sx}, ${b.sy}) rotate(${b.sa})`);
-            });
-
-            if (!silent) {
-                updateText("已重置，点击“播放演示”再次观看。");
-                updateFormula("a² + b² = c²");
-            }
-        }
-
-        // 初始化执行
-        window.onload = () => {
-            initBlocksAndGrid();
-            descText.style.transition = 'opacity 0.3s ease';
-        };
-    </script>
-</body>
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				window.location.reload();
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		engine.startGame({
+			'onProgress': function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	</body>
 </html>
+
